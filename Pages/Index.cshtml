@@ -1,0 +1,173 @@
+@page
+@model ExchangeRateProject.Pages.IndexModel
+@{
+    ViewData["Title"] = "Курси валют";
+    var currency = Model.ViewModel.SelectedCurrency;
+    var currencyLabel = currency == "EUR" ? "Євро (EUR)" : "Долар (USD)";
+    var bestBuy = Model.ViewModel.CommercialRates.FirstOrDefault(r => r.IsBestBuy);
+    var bestSell = Model.ViewModel.CommercialRates.FirstOrDefault(r => r.IsBestSell);
+    var nbuRate = Model.ViewModel.OfficialRates.FirstOrDefault(r => r.IsOfficialRate);
+}
+
+<div class="mb-4">
+    <h1 class="mb-1">Курси валют України</h1>
+    <p class="text-muted mb-3">Дані з API Національного банку України та комерційних банків</p>
+
+    <ul class="nav nav-pills gap-2">
+        @foreach (var code in Model.ViewModel.AvailableCurrencies)
+        {
+            <li class="nav-item">
+                <a class="nav-link @(Model.ViewModel.SelectedCurrency == code ? "active" : "")"
+                   asp-page="/Index" asp-route-currency="@code">
+                    @code
+                </a>
+            </li>
+        }
+    </ul>
+</div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    @if (Model.ViewModel.LastUpdated.HasValue)
+    {
+        <p class="text-muted small mb-0">
+            Оновлено: @Model.ViewModel.LastUpdated.Value.ToString("dd.MM.yyyy HH:mm:ss")
+        </p>
+    }
+    else
+    {
+        <p class="text-muted small mb-0">Курси ще не завантажені</p>
+    }
+    <form method="post" asp-page-handler="Refresh" class="m-0">
+        <input type="hidden" name="Currency" value="@Model.ViewModel.SelectedCurrency" />
+        <button type="submit" class="btn btn-sm btn-outline-primary">Оновити</button>
+    </form>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ViewModel.SuccessMessage))
+{
+    <div class="alert alert-success py-2">@Model.ViewModel.SuccessMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ViewModel.ErrorMessage))
+{
+    <div class="alert alert-warning">@Model.ViewModel.ErrorMessage</div>
+}
+
+<h2 class="h4 mb-3">Курс @currencyLabel</h2>
+
+@if (Model.ViewModel.OfficialRates.Count > 0)
+{
+    <h3 class="h5 mb-3">НБУ (bank.gov.ua)</h3>
+    <div class="row mb-4">
+        @foreach (var rate in Model.ViewModel.OfficialRates)
+        {
+            <div class="col-md-6 mb-3">
+                <div class="card border-primary h-100 @(rate.IsOfficialRate ? "bg-primary-subtle" : "")">
+                    <div class="card-header @(rate.IsOfficialRate ? "bg-primary text-white" : "bg-secondary text-white")">
+                        @rate.BankName
+                    </div>
+                    <div class="card-body">
+                        @if (rate.IsOfficialRate)
+                        {
+                            <p class="mb-0 fs-5"><strong>@rate.BuyRate.ToString("N4")</strong> грн</p>
+                            <p class="text-muted small mb-0">офіційний курс</p>
+                        }
+                        else
+                        {
+                            <p class="mb-1">Купівля: <strong>@rate.BuyRate.ToString("N4")</strong> грн</p>
+                            <p class="mb-0">Продаж: <strong>@rate.SellRate.ToString("N4")</strong> грн</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (bestBuy is not null || bestSell is not null)
+{
+    <div class="card border-success mb-4">
+        <div class="card-header bg-success text-white">
+            <strong>Найкращий комерційний курс — @currency</strong>
+        </div>
+        <div class="card-body">
+            @if (bestBuy is not null)
+            {
+                <p class="mb-1">
+                    <span class="badge bg-primary">Купівля</span>
+                    <strong>@bestBuy.BuyRate.ToString("N4")</strong> грн
+                    — <em>@bestBuy.BankName</em>
+                </p>
+            }
+            @if (bestSell is not null)
+            {
+                <p class="mb-1">
+                    <span class="badge bg-info text-dark">Продаж</span>
+                    <strong>@bestSell.SellRate.ToString("N4")</strong> грн
+                    — <em>@bestSell.BankName</em>
+                </p>
+            }
+            @if (nbuRate is not null)
+            {
+                <p class="mb-0 text-muted small">
+                    Офіційний НБУ для порівняння: @nbuRate.BuyRate.ToString("N4") грн
+                </p>
+            }
+        </div>
+    </div>
+}
+
+<h3 class="h5 mb-3">Комерційні банки</h3>
+
+@if (Model.ViewModel.CommercialRates.Count == 0)
+{
+    <div class="alert alert-info">Курс @currency ще не завантажено. Натисніть «Оновити».</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Банк</th>
+                    <th>Купівля (грн)</th>
+                    <th>Продаж (грн)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rate in Model.ViewModel.CommercialRates)
+                {
+                    <tr>
+                        <td>@rate.BankName</td>
+                        <td>
+                            @rate.BuyRate.ToString("N4")
+                            @if (rate.IsBestBuy)
+                            {
+                                <span class="badge bg-success ms-1">найкращий</span>
+                            }
+                        </td>
+                        <td>
+                            @rate.SellRate.ToString("N4")
+                            @if (rate.IsBestSell)
+                            {
+                                <span class="badge bg-success ms-1">найкращий</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div class="card bg-light mt-4 mb-3">
+    <div class="card-body small">
+        <h3 class="h6">Що таке «картковий» і «готівковий» курс?</h3>
+        <p class="mb-1">
+            <strong>Картковий</strong> — обмін через картку, інтернет-банкінг, термінали.
+        </p>
+        <p class="mb-0">
+            <strong>Готівковий</strong> — обмін у відділенні банку за готівку.
+        </p>
+    </div>
+</div>

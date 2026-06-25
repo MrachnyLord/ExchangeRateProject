@@ -1,0 +1,91 @@
+@page
+@model ExchangeRateProject.Pages.HistoryModel
+@{
+    ViewData["Title"] = "Історія курсів";
+}
+
+<h1 class="mb-2">Історія курсів валют</h1>
+<p class="text-muted mb-4">
+    Оберіть дату — показуються курси за обраний день (останній знімок на банк і валюту).
+</p>
+
+@if (Model.ViewModel.AvailableDates.Count == 0)
+{
+    <div class="alert alert-info">Історія порожня. Натисніть «Оновити» на головній сторінці.</div>
+}
+else
+{
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-4">
+            <label class="form-label" for="Date">Дата</label>
+            <select class="form-select" id="Date" name="Date">
+                @foreach (var date in Model.ViewModel.AvailableDates)
+                {
+                    <option value="@date.ToString("yyyy-MM-dd")" selected="@(Model.ViewModel.SelectedDate.Date == date.Date)">
+                        @date.ToString("dd.MM.yyyy")
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="Currency">Валюта</label>
+            <select class="form-select" id="Currency" name="Currency">
+                <option value="">Усі валюти</option>
+                @foreach (var currency in Model.ViewModel.AvailableCurrencies)
+                {
+                    <option value="@currency" selected="@(Model.ViewModel.SelectedCurrency == currency)">@currency</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Показати</button>
+        </div>
+    </form>
+
+    @if (Model.ViewModel.Rates.Count == 0)
+    {
+        <div class="alert alert-info">За обрану дату записів не знайдено.</div>
+    }
+    else
+    {
+        <p class="text-muted">
+            Знімок від @Model.ViewModel.Rates.First().FetchDate.ToString("dd.MM.yyyy HH:mm")
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-sm align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Банк</th>
+                        <th>Валюта</th>
+                        <th>Купівля</th>
+                        <th>Продаж</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rate in Model.ViewModel.Rates)
+                    {
+                        <tr class="@(rate.IsOfficialRate || rate.IsMarketAverage ? "table-secondary" : "")">
+                            <td>@rate.BankName</td>
+                            <td>@rate.CurrencyCode</td>
+                            <td>
+                                @rate.BuyRate.ToString("N4")
+                                @if (rate.IsBestBuy)
+                                {
+                                    <span class="badge bg-success ms-1">найкращий</span>
+                                }
+                            </td>
+                            <td>
+                                @rate.SellRate.ToString("N4")
+                                @if (rate.IsBestSell)
+                                {
+                                    <span class="badge bg-success ms-1">найкращий</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
