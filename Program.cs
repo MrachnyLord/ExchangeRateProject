@@ -63,8 +63,10 @@ namespace ExchangeRateProject
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.Migrate();
-
+                if(!db.Database.CanConnect())
+                {
+                    db.Database.Migrate();
+                }
                 var syncOptions = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ExchangeRateSyncOptions>>().Value;
                 var exchangeRateService = scope.ServiceProvider.GetRequiredService<ExchangeRateService>();
 
